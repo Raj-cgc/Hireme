@@ -1,45 +1,45 @@
 export const candidate = {
   name: "Raj",
-  title: "Full Stack & Mobile App Developer",
+  title: "Backend Developer",
   tagline:
-    "BTech CSE student specializing in Data Structures & Algorithms, Full Stack Web Development (MERN, Spring Boot), and Mobile Apps (Flutter).",
+    "BTech CSE student specializing in Data Structures & Algorithms, Backend Engineering (Spring Boot, Node.js, Express), REST APIs, and Database Management.",
   location: "CGC Landran / Buxar, India",
   email: "rajkumarbxr78@gmail.com",
   phone: "+91-7004155718",
   linkedin: "https://linkedin.com/in/Raj.",
   github: "https://github.com/Raj-cgc",
   summary:
-    "Detail-oriented BTech CSE student with a strong foundation in Data Structures and Algorithms and practical experience in Full Stack development and App Development. Skilled in building efficient applications and solving complex problems with clean, maintainable code.",
+    "Detail-oriented BTech CSE student with a strong foundation in Data Structures and Algorithms and backend software engineering. Skilled in building robust RESTful APIs, database design (MySQL, MongoDB), object-oriented design, and solving complex backend challenges with clean, maintainable code.",
   highlights: [
-    { label: "Focus", value: "Full Stack & Mobile" },
-    { label: "Stack", value: "C++ · React · Flutter" },
+    { label: "Focus", value: "Backend Engineering" },
+    { label: "Stack", value: "C++ · Spring Boot · Node.js" },
     { label: "Education", value: "B.Tech CSE (CGPA 8.68)" },
   ],
   skills: [
     "C++",
     "Java",
-    "HTML / CSS",
-    "JavaScript",
     "Spring Boot",
-    "React.js",
     "Node.js",
     "Express.js",
-    "Flutter & Dart",
     "MySQL",
     "MongoDB",
     "Firebase",
     "OOP & Low Level Design",
     "DSA & Operating Systems",
     "DBMS",
+    "RESTful APIs",
+    "JavaScript",
+    "HTML / CSS",
+    "Flutter & Dart",
   ],
   experience: [
     {
-      company: "Full Stack & Mobile Projects",
-      role: "Full Stack & App Developer",
+      company: "Backend & API Development Projects",
+      role: "Backend Engineer",
       duration: "2023 — Present",
       description:
-        "Built MediBuddy (a role-based MERN doctor appointment portal with RESTful APIs) and WE CHAT (a real-time messaging mobile application built with Flutter & Firebase). Solved 1000+ DSA problems on LeetCode.",
-      skills: ["C++", "Java", "React.js", "Node.js", "Express.js", "Flutter", "Firebase", "MongoDB"],
+        "Designed and implemented RESTful backend services for MediBuddy (a role-based doctor appointment portal with auth & scheduling APIs) and real-time backend synchronization for WE CHAT. Solved 1000+ DSA problems on LeetCode.",
+      skills: ["C++", "Java", "Spring Boot", "Node.js", "Express.js", "MongoDB", "MySQL", "Firebase"],
     },
   ],
   education: [
@@ -82,9 +82,12 @@ export const candidate = {
 };
 
 export const suggestedQuestions = [
+  "Are you fit for a Backend Engineering role?",
+  "Do you have experience with Spring Boot and REST APIs?",
   "What are Raj's strongest technical skills?",
   "Tell me about Raj's MediBuddy doctor appointment project.",
   "Tell me about WE CHAT built with Flutter & Firebase.",
   "What is Raj's CGPA and educational background?",
   "What competitive programming rating and badges does Raj hold?",
 ];
+
