@@ -9,9 +9,9 @@ export function Hero() {
         <div className="animate-rise">
           <GroundedBadge />
           <h1 className="mt-5 text-4xl leading-[1.08] font-semibold sm:text-5xl lg:text-6xl">
-            Meet the candidate.
+            Hi ! I am {candidate.name}&apos;s AI portfolio assistant.
             <br />
-            <span className="text-primary">Ask the AI.</span>
+            <span className="text-primary">Ask me anything.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             {candidate.tagline} Interview an AI trained strictly on {candidate.name}'s resume —
