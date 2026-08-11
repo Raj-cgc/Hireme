@@ -20,3 +20,55 @@ export async function askCandidate(question: string, signal?: AbortSignal): Prom
   }
   return data.answer;
 }
+
+export async function askCandidateStream(
+  question: string,
+  onChunk: (chunk: string) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const res = await fetch(`${API_URL.replace(/\/$/, "")}/chat/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+    signal: signal ?? null,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Request failed with status ${res.status}`);
+  }
+
+  if (!res.body) {
+    throw new Error("Response body is null");
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const dataStr = trimmed.slice(5).trim();
+      if (dataStr === "[DONE]") {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(dataStr) as { content?: string };
+        if (parsed.content) {
+          onChunk(parsed.content);
+        }
+      } catch {
+        // Skip malformed line
+      }
+    }
+  }
+}
+

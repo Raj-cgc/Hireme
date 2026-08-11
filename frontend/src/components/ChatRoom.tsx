@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { askCandidate } from "@/api/chat";
+import { askCandidateStream } from "@/api/chat";
 import { candidate, suggestedQuestions } from "@/data/candidate";
 import { CandidateSummary } from "./CandidateSummary";
 import { GroundedBadge } from "./GroundedBadge";
@@ -31,16 +31,26 @@ export function ChatRoom() {
     const q = question.trim();
     if (!q || loading) return;
 
-    setMessages((prev) => [...prev, { id: newId(), role: "user", text: q }]);
+    const aiMsgId = newId();
+    setMessages((prev) => [
+      ...prev,
+      { id: newId(), role: "user", text: q },
+      { id: aiMsgId, role: "ai", text: "" },
+    ]);
     setInput("");
     setError(null);
     setLastQuestion(q);
     setLoading(true);
 
     try {
-      const answer = await askCandidate(q);
-      setMessages((prev) => [...prev, { id: newId(), role: "ai", text: answer }]);
+      await askCandidateStream(q, (chunk) => {
+        setLoading(false);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiMsgId ? { ...m, text: m.text + chunk } : m))
+        );
+      });
     } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== aiMsgId || m.text.length > 0));
       setError("Unable to connect. Please check that the backend is running.");
     } finally {
       setLoading(false);
@@ -144,7 +154,21 @@ export function ChatRoom() {
                     Candidate AI
                   </p>
                 )}
-                {m.text}
+                {m.role === "ai" && m.text.length === 0 ? (
+                  <span className="inline-flex items-center gap-1 py-1 text-muted-foreground">
+                    <span className="thinking-dot size-1.5 rounded-full bg-primary" />
+                    <span
+                      className="thinking-dot size-1.5 rounded-full bg-primary"
+                      style={{ animationDelay: "0.15s" }}
+                    />
+                    <span
+                      className="thinking-dot size-1.5 rounded-full bg-primary"
+                      style={{ animationDelay: "0.3s" }}
+                    />
+                  </span>
+                ) : (
+                  m.text
+                )}
               </div>
             </div>
           ))}

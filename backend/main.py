@@ -1,10 +1,12 @@
 import json
 import os
+import asyncio
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel
 from pypdf import PdfReader
@@ -132,38 +134,7 @@ def normalize_text(text: str) -> str:
     normalized = " ".join(replaced)
     return normalized
 
-def ask_candidate(question: str, resume: Resume):
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    use_groq = bool(api_key and not api_key.startswith("dummy"))
-    
-    if use_groq:
-        system_prompt = f"""
-You are {resume.name}, a Computer Science & Engineering student and Backend Engineer interviewing for software engineering roles.
-
-Candidate Resume & Data:
-{resume.model_dump_json(indent=2)}
-
-Strict Guidelines:
-1. Speak in the FIRST PERSON ("I", "my", "me").
-2. Answer the user's question directly and concisely without repeating generic opening introductions like "I am Raj, a Backend Engineer..." unless asked to introduce yourself.
-3. Handle typos and informal questions gracefully (e.g., "fole" -> "role", "springboot" -> "Spring Boot", "dsa" -> "Data Structures & Algorithms").
-4. Be professional, confident, and enthusiastic about backend development, software architecture, REST APIs, databases, and problem-solving.
-5. If asked about a technical topic or project, explain your experience clearly based on your resume stack (Spring Boot, Node.js, Express, C++, Java, MySQL, MongoDB, Firebase, MediBuddy, WE CHAT, 1000+ LeetCode problems).
-6. If asked an out-of-scope question unrelated to a job interview or software engineering (e.g. weather, recipes), politely bring the focus back to your engineering qualifications and resume background.
-"""
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question}
-                ]
-            )
-            return response.choices[0].message.content
-        except Exception:
-            # Fall through to robust rule engine if Groq call fails
-            pass
-
+def ask_candidate_fallback(question: str, resume: Resume) -> str:
     # High-Performance Offline Fallback Q&A Engine
     q_raw = question.strip()
     q_norm = normalize_text(question)
@@ -286,9 +257,89 @@ Strict Guidelines:
         f"I've built systems like MediBuddy and WE CHAT. Feel free to ask about any specific project, skill, education, or technical topic!"
     )
 
+def ask_candidate(question: str, resume: Resume) -> str:
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    use_groq = bool(api_key and not api_key.startswith("dummy"))
+    
+    if use_groq:
+        system_prompt = f"""
+You are {resume.name}, a Computer Science & Engineering student and Backend Engineer interviewing for software engineering roles.
+
+Candidate Resume & Data:
+{resume.model_dump_json(indent=2)}
+
+Strict Guidelines:
+1. Speak in the FIRST PERSON ("I", "my", "me").
+2. Answer the user's question directly and concisely without repeating generic opening introductions like "I am Raj, a Backend Engineer..." unless asked to introduce yourself.
+3. Handle typos and informal questions gracefully (e.g., "fole" -> "role", "springboot" -> "Spring Boot", "dsa" -> "Data Structures & Algorithms").
+4. Be professional, confident, and enthusiastic about backend development, software architecture, REST APIs, databases, and problem-solving.
+5. If asked about a technical topic or project, explain your experience clearly based on your resume stack (Spring Boot, Node.js, Express, C++, Java, MySQL, MongoDB, Firebase, MediBuddy, WE CHAT, 1000+ LeetCode problems).
+6. If asked an out-of-scope question unrelated to a job interview or software engineering (e.g. weather, recipes), politely bring the focus back to your engineering qualifications and resume background.
+"""
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ]
+            )
+            return response.choices[0].message.content
+        except Exception:
+            pass
+
+    return ask_candidate_fallback(question, resume)
+
+async def ask_candidate_stream(question: str, resume: Resume):
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    use_groq = bool(api_key and not api_key.startswith("dummy"))
+
+    if use_groq:
+        system_prompt = f"""
+You are {resume.name}, a Computer Science & Engineering student and Backend Engineer interviewing for software engineering roles.
+
+Candidate Resume & Data:
+{resume.model_dump_json(indent=2)}
+
+Strict Guidelines:
+1. Speak in the FIRST PERSON ("I", "my", "me").
+2. Answer the user's question directly and concisely without repeating generic opening introductions like "I am Raj, a Backend Engineer..." unless asked to introduce yourself.
+3. Handle typos and informal questions gracefully (e.g., "fole" -> "role", "springboot" -> "Spring Boot", "dsa" -> "Data Structures & Algorithms").
+4. Be professional, confident, and enthusiastic about backend development, software architecture, REST APIs, databases, and problem-solving.
+5. If asked about a technical topic or project, explain your experience clearly based on your resume stack (Spring Boot, Node.js, Express, C++, Java, MySQL, MongoDB, Firebase, MediBuddy, WE CHAT, 1000+ LeetCode problems).
+6. If asked an out-of-scope question unrelated to a job interview or software engineering (e.g. weather, recipes), politely bring the focus back to your engineering qualifications and resume background.
+"""
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ],
+                stream=True
+            )
+            for chunk in response:
+                content = chunk.choices[0].delta.content or ""
+                if content:
+                    yield f"data: {json.dumps({'content': content})}\n\n"
+                    await asyncio.sleep(0.005)
+            yield "data: [DONE]\n\n"
+            return
+        except Exception:
+            pass
+
+    full_answer = ask_candidate_fallback(question, resume)
+    words = full_answer.split(" ")
+    for i, word in enumerate(words):
+        chunk = word + (" " if i < len(words) - 1 else "")
+        yield f"data: {json.dumps({'content': chunk})}\n\n"
+        await asyncio.sleep(0.015)
+    yield "data: [DONE]\n\n"
+
 
 def parse_resume(resume_text):
-    if not os.getenv("GROQ_API_KEY"):
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key or api_key.startswith("dummy"):
         return DEFAULT_RESUME
 
     system_prompt = f"""
@@ -321,29 +372,10 @@ def read_pdf(file_path: Path):
             text += page_text + "\n"
     return text
 
-cached_resume: Resume | None = None
+cached_resume: Resume = DEFAULT_RESUME
 
 def get_resume() -> Resume:
     global cached_resume
-    if cached_resume is None:
-        try:
-            file_path = Path("Raj_2336991.pdf")
-            if not file_path.exists():
-                file_path = Path("my_resume.pdf")
-            if not file_path.exists():
-                pdf_files = list(Path(".").glob("*.pdf"))
-                if pdf_files:
-                    file_path = pdf_files[0]
-                else:
-                    file_path = None
-            
-            if file_path and file_path.exists():
-                resume_text = read_pdf(file_path)
-                cached_resume = parse_resume(resume_text)
-            else:
-                cached_resume = DEFAULT_RESUME
-        except Exception:
-            cached_resume = DEFAULT_RESUME
     return cached_resume
 
 @app.get("/")
@@ -364,3 +396,11 @@ def chat(request: ChatRequest):
     return {
         "answer": answer
     }
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    resume = get_resume()
+    return StreamingResponse(
+        ask_candidate_stream(request.question, resume),
+        media_type="text/event-stream"
+    )
