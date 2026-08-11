@@ -173,23 +173,6 @@ export function ChatRoom() {
             </div>
           ))}
 
-          {loading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="flex gap-1" aria-hidden="true">
-                <span className="thinking-dot size-1.5 rounded-full bg-primary" />
-                <span
-                  className="thinking-dot size-1.5 rounded-full bg-primary"
-                  style={{ animationDelay: "0.15s" }}
-                />
-                <span
-                  className="thinking-dot size-1.5 rounded-full bg-primary"
-                  style={{ animationDelay: "0.3s" }}
-                />
-              </span>
-              AI is thinking...
-            </div>
-          )}
-
           {error && (
             <div
               role="alert"
